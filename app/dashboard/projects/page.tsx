@@ -1,26 +1,29 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function ProjectsPage() {
+  const router = useRouter()
   const [projects, setProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('ALL')
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('ALL')
 
-  const stages = ['ALL', 'RFQ', 'SOURCING', 'QUOTE', 'NEGOTIATION', 'ORDER', 'CLOSED_WON', 'CLOSED_LOST']
+  const statuses = ['ALL', 'NEW', 'IN_PROGRESS', 'QUOTED', 'WON', 'LOST']
 
-  useEffect(() => { loadProjects() }, [filter])
+  useEffect(() => { loadProjects() }, [statusFilter])
 
   const loadProjects = async () => {
     setLoading(true)
     let query = supabase
       .from('rfq_projects')
-      .select('*')
+      .select('*, companies(company_name)')
       .order('created_at', { ascending: false })
 
-    if (filter !== 'ALL') {
-      query = query.eq('stage', filter)
+    if (statusFilter !== 'ALL') {
+      query = query.eq('status', statusFilter)
     }
 
     const { data } = await query
@@ -28,13 +31,22 @@ export default function ProjectsPage() {
     setLoading(false)
   }
 
+  const filtered = projects.filter(p =>
+    p.project_code?.toLowerCase().includes(search.toLowerCase()) ||
+    p.product_description?.toLowerCase().includes(search.toLowerCase()) ||
+    p.manufacturer?.toLowerCase().includes(search.toLowerCase()) ||
+    (p.companies as any)?.company_name?.toLowerCase().includes(search.toLowerCase())
+  )
+
   const getStatusBadge = (status: string) => {
     const map: Record<string, string> = {
-      OPEN: 'badge-open', IN_PROGRESS: 'badge-open',
-      QUOTED: 'badge-quoted', WON: 'badge-won',
-      LOST: 'badge-lost', ON_HOLD: 'badge-pending',
+      NEW: 'badge-open',
+      IN_PROGRESS: 'badge-pending',
+      QUOTED: 'badge-quoted',
+      WON: 'badge-won',
+      LOST: 'badge-lost',
     }
-    return map[status] || 'badge-pending'
+    return map[status] || ''
   }
 
   return (
@@ -48,10 +60,13 @@ export default function ProjectsPage() {
         <div>
           <h1 style={{ fontSize: '24px', marginBottom: '4px' }}>Projects</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
-            All RFQ projects from intake to close
+            All RFQ projects — each with a unique project code
           </p>
         </div>
-        <button className="btn btn-primary">
+        <button
+          className="btn btn-primary"
+          onClick={() => router.push('/dashboard/projects/new')}
+        >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
@@ -59,34 +74,41 @@ export default function ProjectsPage() {
         </button>
       </div>
 
-      {/* Stage filter */}
       <div className="animate-in-delay-1" style={{
         display: 'flex',
-        gap: '6px',
+        gap: '12px',
         marginBottom: '20px',
         flexWrap: 'wrap',
+        alignItems: 'center',
       }}>
-        {stages.map(s => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            style={{
-              padding: '5px 12px',
-              borderRadius: '6px',
-              border: '1px solid',
-              borderColor: filter === s ? 'var(--accent)' : 'var(--border)',
-              background: filter === s ? 'var(--accent-dim)' : 'transparent',
-              color: filter === s ? 'var(--accent-light)' : 'var(--text-muted)',
-              fontSize: '11px',
-              fontFamily: 'var(--font-mono)',
-              letterSpacing: '0.05em',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {s}
-          </button>
-        ))}
+        <input
+          className="input"
+          placeholder="Search by code, product, company..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ maxWidth: '280px' }}
+        />
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {statuses.map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '6px',
+                border: '1px solid',
+                borderColor: statusFilter === s ? 'var(--accent)' : 'var(--border)',
+                background: statusFilter === s ? 'var(--accent-dim)' : 'transparent',
+                color: statusFilter === s ? 'var(--accent-light)' : 'var(--text-muted)',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                cursor: 'pointer',
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="animate-in-delay-2 card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -94,11 +116,15 @@ export default function ProjectsPage() {
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
             Loading projects...
           </div>
-        ) : projects.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-              No projects found
-            </p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '16px' }}>No projects yet</p>
+            <button
+              className="btn btn-primary"
+              onClick={() => router.push('/dashboard/projects/new')}
+            >
+              + Create First Project
+            </button>
           </div>
         ) : (
           <div className="table-container">
@@ -106,52 +132,35 @@ export default function ProjectsPage() {
               <thead>
                 <tr>
                   <th>Project Code</th>
+                  <th>Company</th>
                   <th>Product</th>
+                  <th>Manufacturer</th>
                   <th>Source</th>
-                  <th>Stage</th>
                   <th>Status</th>
-                  <th>Margin %</th>
                   <th>Date</th>
                 </tr>
               </thead>
               <tbody>
-                {projects.map((p, i) => (
+                {filtered.map((p, i) => (
                   <tr key={i}>
                     <td>
-                      <span style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '12px',
-                        color: 'var(--accent-light)',
-                        background: 'var(--accent-dim)',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                      }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--accent-light)', letterSpacing: '0.08em' }}>
                         {p.project_code}
                       </span>
                     </td>
-                    <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {p.product_name_raw || '—'}
+                    <td style={{ fontWeight: 500 }}>{(p.companies as any)?.company_name || p.company_id}</td>
+                    <td style={{ fontSize: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.product_description}
                     </td>
-                    <td style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                      {p.source}
-                    </td>
-                    <td style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                      {p.stage}
-                    </td>
+                    <td style={{ fontSize: '12px' }}>{p.manufacturer || '—'}</td>
+                    <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{p.source || '—'}</td>
                     <td>
-                      <span className={`badge ${getStatusBadge(p.status)}`}>
+                      <span className={`badge ${getStatusBadge(p.status)}`} style={{ fontSize: '10px' }}>
                         {p.status}
                       </span>
                     </td>
-                    <td style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '12px',
-                      color: p.margin_locked ? 'var(--green)' : 'var(--accent-light)',
-                    }}>
-                      {p.margin_pct}% {p.margin_locked ? '🔒' : ''}
-                    </td>
-                    <td style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                      {p.rfq_date ? new Date(p.rfq_date).toLocaleDateString('en-GB') : '—'}
+                    <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : '—'}
                     </td>
                   </tr>
                 ))}

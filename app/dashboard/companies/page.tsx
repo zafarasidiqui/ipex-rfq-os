@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function CompaniesPage() {
+  const router = useRouter()
   const [companies, setCompanies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -61,7 +63,10 @@ export default function CompaniesPage() {
             Customers, suppliers and manufacturers — one universal database
           </p>
         </div>
-        <button className="btn btn-primary">
+        <button
+          className="btn btn-primary"
+          onClick={() => router.push('/dashboard/companies/new')}
+        >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
@@ -114,7 +119,13 @@ export default function CompaniesPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>No companies found</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '16px' }}>No companies yet</p>
+            <button
+              className="btn btn-primary"
+              onClick={() => router.push('/dashboard/companies/new')}
+            >
+              + Add First Company
+            </button>
           </div>
         ) : (
           <div className="table-container">
@@ -134,11 +145,7 @@ export default function CompaniesPage() {
                 {filtered.map((c, i) => (
                   <tr key={i}>
                     <td>
-                      <span style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '11px',
-                        color: 'var(--text-muted)',
-                      }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-muted)' }}>
                         {c.company_id}
                       </span>
                     </td>
@@ -157,9 +164,7 @@ export default function CompaniesPage() {
                           width: '6px', height: '6px', borderRadius: '50%',
                           background: c.status === 'ACTIVE' ? 'var(--green)' : 'var(--red)',
                         }} />
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          {c.status}
-                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{c.status}</span>
                       </div>
                     </td>
                   </tr>
