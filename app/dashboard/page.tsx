@@ -27,8 +27,8 @@ export default function DashboardPage() {
   const loadData = async () => {
     try {
       const [projects, quotations, companies, products] = await Promise.all([
-        supabase.from('rfq_projects').select('*', { count: 'exact', head: true }).eq('status', 'OPEN'),
-        supabase.from('quotations').select('*', { count: 'exact', head: true }).eq('status', 'PENDING_APPROVAL'),
+        supabase.from('rfq_projects').select('*', { count: 'exact', head: true }).in('status', ['NEW','IN_PROGRESS']),
+        supabase.from('quotations').select('*', { count: 'exact', head: true }).in('status', ['DRAFT','PENDING_APPROVAL']),
         supabase.from('companies').select('*', { count: 'exact', head: true }),
         supabase.from('products').select('*', { count: 'exact', head: true }),
       ])
