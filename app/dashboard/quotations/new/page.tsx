@@ -48,7 +48,7 @@ export default function NewQuotationPage() {
       .select('project_code, product_description, manufacturer, company_id, companies(company_name), margin_step')
       .in('status', ['NEW', 'IN_PROGRESS', 'QUOTED'])
       .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setProjects(data as Project[]) })
+      .then(({ data }) => { if (data) setProjects(data as unknown as Project[]) })
 
     // Load FX rates
     supabase
