@@ -1,51 +1,36 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-interface Stats {
-  openProjects: number
-  pendingQuotations: number
-  totalCompanies: number
-  totalProducts: number
-}
-
 export default function DashboardPage() {
-  const [stats, setStats] = useState<Stats>({
-    openProjects: 0,
-    pendingQuotations: 0,
-    totalCompanies: 0,
-    totalProducts: 0,
-  })
+  const router = useRouter()
+  const [stats, setStats] = useState({ openProjects: 0, pendingQuotations: 0, totalCompanies: 0, totalProducts: 0 })
   const [recentProjects, setRecentProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  useEffect(() => { loadData() }, [])
 
   const loadData = async () => {
     try {
-      const [projects, quotations, companies, products] = await Promise.all([
-        supabase.from('rfq_projects').select('*', { count: 'exact', head: true }).in('status', ['NEW','IN_PROGRESS']),
-        supabase.from('quotations').select('*', { count: 'exact', head: true }).in('status', ['DRAFT','PENDING_APPROVAL']),
+      const [proj, quot, comp, prod] = await Promise.all([
+        supabase.from('rfq_projects').select('*', { count: 'exact', head: true }).in('status', ['NEW', 'IN_PROGRESS']),
+        supabase.from('quotations').select('*', { count: 'exact', head: true }).in('status', ['DRAFT', 'PENDING_APPROVAL']),
         supabase.from('companies').select('*', { count: 'exact', head: true }),
         supabase.from('products').select('*', { count: 'exact', head: true }),
       ])
-
       setStats({
-        openProjects: projects.count || 0,
-        pendingQuotations: quotations.count || 0,
-        totalCompanies: companies.count || 0,
-        totalProducts: products.count || 0,
+        openProjects: proj.count || 0,
+        pendingQuotations: quot.count || 0,
+        totalCompanies: comp.count || 0,
+        totalProducts: prod.count || 0,
       })
-
       const { data: recent } = await supabase
         .from('rfq_projects')
-        .select('project_code, customer_company_id, product_name_raw, stage, status, rfq_date')
+        .select('project_code, company_id, companies(company_name), product_description, manufacturer, status, created_at')
         .order('created_at', { ascending: false })
         .limit(8)
-
       setRecentProjects(recent || [])
     } catch (err) {
       console.error(err)
@@ -59,157 +44,41 @@ export default function DashboardPage() {
   const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
   const statCards = [
-    {
-      label: 'Open Projects',
-      value: stats.openProjects,
-      color: 'var(--blue)',
-      colorDim: 'var(--blue-dim)',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M2 5h14M2 9h10M2 13h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-        </svg>
-      ),
-    },
-    {
-      label: 'Pending Approval',
-      value: stats.pendingQuotations,
-      color: 'var(--accent-light)',
-      colorDim: 'var(--accent-dim)',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M10 2H5a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V7M10 2l4 4M10 2v4h4" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-        </svg>
-      ),
-    },
-    {
-      label: 'Companies',
-      value: stats.totalCompanies,
-      color: 'var(--green)',
-      colorDim: 'var(--green-dim)',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M2 16V6l7-4 7 4v10" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-          <path d="M7 16v-5h4v5" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-        </svg>
-      ),
-    },
-    {
-      label: 'Products',
-      value: stats.totalProducts,
-      color: 'var(--orange)',
-      colorDim: 'var(--orange-dim)',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M9 1l7 4v8l-7 4-7-4V5l7-4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-        </svg>
-      ),
-    },
+    { label: 'Open Projects', value: stats.openProjects, color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', icon: '📋' },
+    { label: 'Pending Approval', value: stats.pendingQuotations, color: '#e8a93a', bg: 'rgba(232,169,58,0.12)', icon: '📄' },
+    { label: 'Companies', value: stats.totalCompanies, color: '#4ade80', bg: 'rgba(74,222,128,0.12)', icon: '🏢' },
+    { label: 'Products', value: stats.totalProducts, color: '#fb923c', bg: 'rgba(251,146,60,0.12)', icon: '📦' },
   ]
 
-  const getStatusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      OPEN: 'badge-open',
-      IN_PROGRESS: 'badge-open',
-      QUOTED: 'badge-quoted',
-      WON: 'badge-won',
-      LOST: 'badge-lost',
-      ON_HOLD: 'badge-pending',
-    }
-    return map[status] || 'badge-pending'
+  const statusColor: Record<string, string> = {
+    NEW: '#60a5fa', IN_PROGRESS: '#e8a93a', QUOTED: '#fb923c', WON: '#4ade80', LOST: '#f87171',
   }
 
   return (
     <div style={{ padding: '32px', maxWidth: '1200px' }}>
 
       {/* Header */}
-      <div className="animate-in" style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: '32px',
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }} className="animate-in">
         <div>
-          <h1 style={{ fontSize: '26px', marginBottom: '4px' }}>
-            Good day, Zafar
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontFamily: 'var(--font-mono)' }}>
-            {dateStr}
-          </p>
+          <h1 style={{ fontSize: '28px', marginBottom: '4px', color: '#f1f5f9' }}>Good day, Zafar</h1>
+          <p style={{ color: '#94a3b8', fontSize: '13px', fontFamily: 'var(--font-mono)' }}>{dateStr}</p>
         </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'var(--bg-surface)',
-          border: '1px solid var(--border)',
-          borderRadius: '8px',
-          padding: '10px 16px',
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#1e293b', border: '1px solid #2d3f55', borderRadius: '8px', padding: '10px 16px' }}>
           <div className="live-dot" />
-          <span style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '13px',
-            color: 'var(--text-secondary)',
-          }}>
-            {timeStr} PKT
-          </span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: '#e2e8f0' }}>{timeStr} PKT</span>
         </div>
       </div>
 
       {/* Stat Cards */}
-      <div className="animate-in-delay-1" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '16px',
-        marginBottom: '32px',
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }} className="animate-in-delay-1">
         {statCards.map((card, i) => (
-          <div key={i} className="card" style={{ position: 'relative', overflow: 'hidden' }}>
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: '2px',
-              background: card.color,
-              opacity: 0.6,
-            }} />
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              marginBottom: '16px',
-            }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                background: card.colorDim,
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: card.color,
-              }}>
-                {card.icon}
-              </div>
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '32px',
-              fontWeight: 700,
-              color: card.color,
-              lineHeight: 1,
-              marginBottom: '6px',
-            }}>
+          <div key={i} style={{ background: '#1e293b', border: '1px solid #2d3f55', borderRadius: '10px', padding: '22px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: card.color }} />
+            <div style={{ fontSize: '28px', marginBottom: '8px' }}>{card.icon}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '36px', fontWeight: 800, color: card.color, lineHeight: 1, marginBottom: '8px' }}>
               {loading ? '—' : card.value}
             </div>
-            <div style={{
-              fontSize: '12px',
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-mono)',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-            }}>
+            <div style={{ fontSize: '12px', color: '#94a3b8', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               {card.label}
             </div>
           </div>
@@ -218,102 +87,49 @@ export default function DashboardPage() {
 
       {/* Recent Projects */}
       <div className="animate-in-delay-2">
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px',
-        }}>
-          <h2 style={{ fontSize: '16px' }}>Recent Projects</h2>
-          <a href="/dashboard/projects" style={{
-            fontSize: '12px',
-            color: 'var(--accent)',
-            textDecoration: 'none',
-            fontFamily: 'var(--font-mono)',
-          }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '17px', color: '#f1f5f9' }}>Recent Projects</h2>
+          <button onClick={() => router.push('/dashboard/projects')} style={{ fontSize: '13px', color: '#e8a93a', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
             View all →
-          </a>
+          </button>
         </div>
 
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ background: '#1e293b', border: '1px solid #2d3f55', borderRadius: '10px', overflow: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Loading...
-            </div>
+            <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading...</div>
           ) : recentProjects.length === 0 ? (
             <div style={{ padding: '60px', textAlign: 'center' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                background: 'var(--bg-elevated)',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-                color: 'var(--text-muted)',
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M3 7h18M3 12h12M3 17h15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '8px' }}>
-                No projects yet
-              </p>
-              <p style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                Projects will appear here as RFQs come in
-              </p>
+              <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '16px' }}>No projects yet</p>
+              <button onClick={() => router.push('/dashboard/projects/new')} className="btn btn-primary">+ New Project</button>
             </div>
           ) : (
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Project Code</th>
-                    <th>Product</th>
-                    <th>Stage</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentProjects.map((p, i) => (
-                    <tr key={i} onClick={() => window.location.href = `/dashboard/projects/${p.project_code}`}>
-                      <td>
-                        <span style={{
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: '12px',
-                          color: 'var(--accent-light)',
-                          background: 'var(--accent-dim)',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                        }}>
-                          {p.project_code}
-                        </span>
-                      </td>
-                      <td>{p.product_name_raw || '—'}</td>
-                      <td>
-                        <span style={{
-                          fontSize: '11px',
-                          color: 'var(--text-muted)',
-                          fontFamily: 'var(--font-mono)',
-                        }}>
-                          {p.stage}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`badge ${getStatusBadge(p.status)}`}>
-                          {p.status}
-                        </span>
-                      </td>
-                      <td style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                        {p.rfq_date ? new Date(p.rfq_date).toLocaleDateString('en-GB') : '—'}
-                      </td>
-                    </tr>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #3d5068' }}>
+                  {['Project Code', 'Company', 'Product', 'Manufacturer', 'Status', 'Date'].map(h => (
+                    <th key={h} style={{ padding: '13px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: '#94a3b8', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{h}</th>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {recentProjects.map((p, i) => (
+                  <tr key={i} onClick={() => router.push('/dashboard/projects')} style={{ borderBottom: '1px solid #2d3f55', cursor: 'pointer' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = '#293548'}
+                    onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'}>
+                    <td style={{ padding: '13px 16px' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: '#e8a93a', background: 'rgba(232,169,58,0.12)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>{p.project_code}</span>
+                    </td>
+                    <td style={{ padding: '13px 16px', fontSize: '14px', color: '#e2e8f0', fontWeight: 500 }}>{(p.companies as any)?.company_name || p.company_id || '—'}</td>
+                    <td style={{ padding: '13px 16px', fontSize: '13px', color: '#cbd5e1', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.product_description || '—'}</td>
+                    <td style={{ padding: '13px 16px', fontSize: '13px', color: '#cbd5e1' }}>{p.manufacturer || '—'}</td>
+                    <td style={{ padding: '13px 16px' }}>
+                      <span style={{ background: statusColor[p.status] ? statusColor[p.status] + '22' : '#33405522', color: statusColor[p.status] || '#94a3b8', padding: '3px 9px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>{p.status}</span>
+                    </td>
+                    <td style={{ padding: '13px 16px', fontSize: '13px', color: '#94a3b8' }}>{p.created_at ? new Date(p.created_at).toLocaleDateString('en-GB') : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </div>
