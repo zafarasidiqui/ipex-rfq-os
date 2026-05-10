@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 const MARGIN_STEPS = [50, 40, 30, 20, 10]
 
@@ -23,7 +23,6 @@ interface FXRate {
 
 export default function NewQuotationPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   const [projects, setProjects] = useState<Project[]>([])
   const [fxRates, setFxRates] = useState<FXRate[]>([])

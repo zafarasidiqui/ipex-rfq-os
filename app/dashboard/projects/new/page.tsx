@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 function generateProjectCode(): string {
   const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
@@ -20,7 +20,6 @@ function getInternalCode(code: string): string {
 
 export default function NewProjectPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   const [projectCode, setProjectCode] = useState('')
   const [companies, setCompanies] = useState<{ company_id: string; company_name: string }[]>([])

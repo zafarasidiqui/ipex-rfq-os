@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 const COUNTRY_IATA: Record<string, { iata: string; name: string }> = {
   PK: { iata: 'KHI', name: 'Pakistan' },
@@ -33,7 +33,6 @@ function generateCompanyID(country: string, iata: string, postal: string, name: 
 
 export default function NewCompanyPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   const [form, setForm] = useState({
     company_name: '',
