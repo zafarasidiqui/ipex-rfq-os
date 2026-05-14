@@ -141,8 +141,8 @@ function NewProjectForm() {
         </div>
         <F label="Product Description *"><input name="product_description" value={form.product_description} onChange={handle} placeholder="Full product name" style={OI} /></F>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', margin: '16px 0' }}>
-          <F label="Manufacturer / Brand"><input name="manufacturer" value={form.manufacturer} onChange={handle} placeholder="e.g. Bosch Rexroth" style={OI} /></F>
-          <F label="Part / Catalogue Number"><input name="part_no" value={form.part_no} onChange={handle} placeholder="e.g. 3 842 530 352" style={OI} /></F>
+          <F label="Manufacturer / Brand"><input name="manufacturer" value={form.manufacturer} onChange={handle} placeholder="Brand or manufacturer name" style={OI} /></F>
+          <F label="Part / Catalogue Number"><input name="part_no" value={form.part_no} onChange={handle} placeholder="Part or catalogue number" style={OI} /></F>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px' }}>
           <F label="Quantity"><input name="quantity" value={form.quantity} onChange={handle} type="number" placeholder="100" style={OI} /></F>
