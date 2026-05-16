@@ -11,8 +11,8 @@ export default function LoginPage() {
   const [status, setStatus] = useState<'idle'|'checking'|'ok'>('idle')
   const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleLogin = async () => {
+    if (status !== 'idle') return
     setStatus('checking')
     setError('')
 
@@ -27,6 +27,10 @@ export default function LoginPage() {
       setError('Wrong password. Try again.')
       setStatus('idle')
     }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleLogin()
   }
 
   const btnLabel =
@@ -54,18 +58,8 @@ export default function LoginPage() {
         backgroundSize: '60px 60px',
         opacity: 0.3,
       }} />
-      <div style={{
-        position: 'absolute',
-        top: '30%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: '600px',
-        height: '300px',
-        background: 'radial-gradient(ellipse, rgba(200,146,42,0.08) 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
 
-      <div className="animate-in" style={{
+      <div style={{
         position: 'relative',
         zIndex: 10,
         width: '100%',
@@ -127,67 +121,65 @@ export default function LoginPage() {
             IPEX Industrial Projects Export GmbH
           </p>
 
-          <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '12px',
-                fontFamily: 'var(--font-mono)',
-                color: 'var(--text-muted)',
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-              }}>
-                Operator Password
-              </label>
-              <input
-                type="password"
-                className="input"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Enter password"
-                autoFocus
-                required
-              />
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '12px',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-muted)',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              marginBottom: '8px',
+            }}>
+              Operator Password
+            </label>
+            <input
+              type="password"
+              className="input"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Enter password"
+              autoFocus
+            />
+          </div>
+
+          {error && (
+            <div style={{
+              padding: '10px 12px',
+              background: 'var(--red-dim)',
+              border: '1px solid rgba(231,76,60,0.2)',
+              borderRadius: '6px',
+              color: 'var(--red)',
+              fontSize: '12px',
+              marginBottom: '16px',
+            }}>
+              {error}
             </div>
+          )}
 
-            {error && (
-              <div style={{
-                padding: '10px 12px',
-                background: 'var(--red-dim)',
-                border: '1px solid rgba(231,76,60,0.2)',
-                borderRadius: '6px',
-                color: 'var(--red)',
-                fontSize: '12px',
-                marginBottom: '16px',
-              }}>
-                {error}
-              </div>
-            )}
+          {status === 'ok' && (
+            <div style={{
+              padding: '10px 12px',
+              background: 'rgba(39,174,96,0.1)',
+              border: '1px solid rgba(39,174,96,0.3)',
+              borderRadius: '6px',
+              color: '#27ae60',
+              fontSize: '12px',
+              marginBottom: '16px',
+            }}>
+              Password correct. Entering system...
+            </div>
+          )}
 
-            {status === 'ok' && (
-              <div style={{
-                padding: '10px 12px',
-                background: 'rgba(39,174,96,0.1)',
-                border: '1px solid rgba(39,174,96,0.3)',
-                borderRadius: '6px',
-                color: '#27ae60',
-                fontSize: '12px',
-                marginBottom: '16px',
-              }}>
-                Password correct. Entering system...
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={status !== 'idle'}
-              style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
-            >
-              {btnLabel}
-            </button>
-          </form>
+          <button
+            className="btn btn-primary"
+            onClick={handleLogin}
+            disabled={status !== 'idle'}
+            style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
+          >
+            {btnLabel}
+          </button>
         </div>
 
         <p style={{
