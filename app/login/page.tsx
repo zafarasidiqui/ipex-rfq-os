@@ -22,7 +22,7 @@ export default function LoginPage() {
       setStatus('ok')
       await new Promise(r => setTimeout(r, 800))
       localStorage.setItem('ipex_auth', 'true')
-      router.push('/dashboard')
+      window.location.href = '/dashboard'
     } else {
       setError('Wrong password. Try again.')
       setStatus('idle')
