@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -8,24 +8,31 @@ const OPERATOR_PASSWORD = 'ipex2026'
 export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState<'idle'|'checking'|'ok'>('idle')
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setStatus('checking')
     setError('')
 
-    await new Promise(r => setTimeout(r, 400))
+    await new Promise(r => setTimeout(r, 500))
 
     if (password === OPERATOR_PASSWORD) {
+      setStatus('ok')
+      await new Promise(r => setTimeout(r, 800))
       localStorage.setItem('ipex_auth', 'true')
       router.push('/dashboard')
     } else {
-      setError('Incorrect password. Access denied.')
-      setLoading(false)
+      setError('Wrong password. Try again.')
+      setStatus('idle')
     }
   }
+
+  const btnLabel =
+    status === 'checking' ? 'Verifying...' :
+    status === 'ok'       ? 'Correct  Entering system...' :
+                            'Access System'
 
   return (
     <div style={{
@@ -37,8 +44,6 @@ export default function LoginPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-
-      {/* Background grid */}
       <div style={{
         position: 'absolute',
         inset: 0,
@@ -49,8 +54,6 @@ export default function LoginPage() {
         backgroundSize: '60px 60px',
         opacity: 0.3,
       }} />
-
-      {/* Accent glow */}
       <div style={{
         position: 'absolute',
         top: '30%',
@@ -69,8 +72,6 @@ export default function LoginPage() {
         maxWidth: '380px',
         padding: '0 20px',
       }}>
-
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{
             display: 'inline-flex',
@@ -111,17 +112,13 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Card */}
         <div style={{
           background: 'var(--bg-surface)',
           border: '1px solid var(--border)',
           borderRadius: '12px',
           padding: '32px',
         }}>
-          <h2 style={{
-            fontSize: '18px',
-            marginBottom: '6px',
-          }}>Sign In</h2>
+          <h2 style={{ fontSize: '18px', marginBottom: '6px' }}>Sign In</h2>
           <p style={{
             color: 'var(--text-muted)',
             fontSize: '13px',
@@ -168,13 +165,27 @@ export default function LoginPage() {
               </div>
             )}
 
+            {status === 'ok' && (
+              <div style={{
+                padding: '10px 12px',
+                background: 'rgba(39,174,96,0.1)',
+                border: '1px solid rgba(39,174,96,0.3)',
+                borderRadius: '6px',
+                color: '#27ae60',
+                fontSize: '12px',
+                marginBottom: '16px',
+              }}>
+                Password correct. Entering system...
+              </div>
+            )}
+
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={loading}
+              disabled={status !== 'idle'}
               style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
             >
-              {loading ? 'Verifying...' : 'Access System →'}
+              {btnLabel}
             </button>
           </form>
         </div>
